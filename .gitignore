@@ -1,0 +1,40 @@
+# =========================
+# Secrets
+# =========================
+.env
+
+# =========================
+# Node
+# =========================
+node_modules/
+
+# =========================
+# Runtime uploads
+# =========================
+server/uploads/
+
+# =========================
+# Evaluation artifacts
+# =========================
+server/eval.sqlite
+server/eval_runs_*.csv
+
+# =========================
+# Derived inputs
+# =========================
+ server/images_to_process/
+ server/low_quality_images/
+ server/pdfs_text/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS / IDE
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
