@@ -4,11 +4,12 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node index.js",
     "openai": "LLM_PROVIDER=openai node index.js",
-    "llama": "LLM_PROVIDER=ollama OLLAMA_MODEL=llama3.1:8b-instruct-q8_0 node index.js"
+    "qwen": "LLM_PROVIDER=ollama OLLAMA_MODEL=qwen2.5:7b-instruct-q4_K_S node index.js",
+    "start": "node index.js"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "better-sqlite3": "^12.5.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

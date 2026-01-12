@@ -1,4 +1,3 @@
-// server/index.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -42,6 +41,7 @@ const MODEL =
     : process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 // =====================================================
+
 // SQLite setup
 // =====================================================
 

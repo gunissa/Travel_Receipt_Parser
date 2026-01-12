@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 // CONFIGURATION
 const API_URL = "http://localhost:8789/api/extract-file"; 
-const IMAGE_DIR = "./low_quality_images";
+const IMAGE_DIR = "./images"; // Directory containing images
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,12 +12,18 @@ const __dirname = path.dirname(__filename);
 async function runBatch() {
   const dirPath = path.join(__dirname, IMAGE_DIR);
 
+
+console.log("CWD:", process.cwd());
+console.log("__dirname:", __dirname);
+console.log("dirPath:", dirPath);
+
+
   if (!fs.existsSync(dirPath)) {
     console.error(`Error: Directory ${IMAGE_DIR} does not exist.`);
     return;
   }
 
-  const files = fs.readdirSync(dirPath).filter(f => /\.(png|jpg|jpeg)$/i.test(f));
+  const files = fs.readdirSync(dirPath).filter(f => /\.(png|jpg|jpeg|pdf)$/i.test(f));
 
   console.log(`Found ${files.length} images in ${IMAGE_DIR}`);
 
@@ -31,6 +37,7 @@ async function runBatch() {
     let mimeType = "application/octet-stream";
     if (ext === ".png") mimeType = "image/png";
     else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+    else if (ext === ".pdf") mimeType = "application/pdf";
 
     // Create Blob WITH the MIME type
     const fileBuffer = fs.readFileSync(filePath);
