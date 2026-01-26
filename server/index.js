@@ -161,16 +161,18 @@ Rules:
 3) City fields must be only city names (NOT airport codes and no country names) in ALL CAPS. If only code, infer city if obvious.
 4) Names: FIRSTNAME LASTNAME in ALL CAPS; remove titles MR/MS/MRS/DR; remove extra tokens.
 5) Flight simplification: do NOT output segments/connections.
-   overallFrom=first departure city (not airport code nor airport name, but city names in all CAPS as described in point 3), overallTo=final destination city (not airport code nor airport name, but city names in all CAPS as described in point 3).
-   departureDate=first departure date.
-   returnDate=for round_trip only; otherwise null.
+   overallFrom = first departure city name (the trip origin, not a connecting or layover airport; not an airport code or airport name), written in ALL CAPS as defined in point 3.
+   overallTo = final destination city name of the outgoing flight (not a connecting or layover airport; not an airport code or airport name), written in ALL CAPS as defined in point 3.   
+   departureDate = first departure date.
+   returnDate = departure date of the return flight (not a connecting or lazover flight) for round_trip only; otherwise null.
    A flight is round_trip ONLY if there are two opposite directions (A→B and B→A) with respective flight dates. There can be connecting flight in return ticket (A→C→B and B→C→A).
    Otherwise (if there are no opposite directions), it is one-way and returnDate MUST be null. There can be connecting flight in one-way ticket (i.e., A→C→B without returning from B to A).
 6) Price: currency must be a 3-letter international code. totalPrice must be a pure number (no currency symbols) representing the final sum of all costs, including the base fare/rate plus all applicable taxes, fees, and surcharges.
 7) Output ONLY valid JSON. No markdown, no extra keys.
 8) Always respond in English and use English characters.
-9) totalPrice must be a NUMBER (no currency symbols); if multiple prices, use TOTAL amount.
-10) bookingReference and receiptNumber are the same concept (different names for flight vs hotel). Remove spaces between numbers and letters.
+9) totalPrice must be a non-negative NUMBER (no currency symbols); if multiple prices, use TOTAL amount.
+10) bookingReference and receiptNumber are the same concept (different names for flight vs hotel). 
+    If multiple references/numbers, use the main one that is most prominently displayed.
 11) Hotel name formatting: hotelName must use Capitalized Words (first letter uppercase for each word).
 
 

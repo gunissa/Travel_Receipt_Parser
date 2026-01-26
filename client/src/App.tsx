@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.min.mjs";
 
 const API_BASE = "http://localhost:8789";
 
 // =============================
-// Types (FINAL schema)
+// Types
 // =============================
 type FlightData = {
   type: "flight";
@@ -52,6 +52,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExtractResult | null>(null);
   const [fileMeta, setFileMeta] = useState<{ name: string; pages?: number } | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // =============================
   // Backend calls
@@ -63,9 +64,19 @@ export default function App() {
       body: JSON.stringify({ text, source_file }),
     });
 
-    const data = await r.json();
+    const textBody = await r.text().catch(() => "");
+    let data: any = null;
+    try {
+      data = textBody ? JSON.parse(textBody) : null;
+    } catch {
+      data = null;
+    }
 
-    if (!r.ok || !data?.ok) {
+    if (!r.ok) {
+      throw new Error(data?.error ?? `HTTP ${r.status} ${r.statusText}`);
+    }
+
+    if (!data?.ok) {
       throw new Error(data?.error ?? "Extraction failed");
     }
 
@@ -85,9 +96,19 @@ export default function App() {
       body: form,
     });
 
-    const data = await r.json();
+    const textBody = await r.text().catch(() => "");
+    let data: any = null;
+    try {
+      data = textBody ? JSON.parse(textBody) : null;
+    } catch {
+      data = null;
+    }
 
-    if (!r.ok || !data?.ok) {
+    if (!r.ok) {
+      throw new Error(data?.error ?? `HTTP ${r.status} ${r.statusText}`);
+    }
+
+    if (!data?.ok) {
       throw new Error(data?.error ?? "OCR extraction failed");
     }
 
@@ -137,26 +158,49 @@ export default function App() {
           return;
         }
 
-        // fallback → OCR first page
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 2 });
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("Canvas unsupported");
+        // fallback → OCR pages (try first N pages, stop on success)
+        const pagesToTry = Math.min(3, pdf.numPages);
+        for (let i = 1; i <= pagesToTry; i++) {
+          try {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) throw new Error("Canvas unsupported");
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+            canvas.width = Math.floor(viewport.width);
+            canvas.height = Math.floor(viewport.height);
 
-        await page.render({ canvasContext: ctx, viewport } as any).promise;
+            const renderTask: any = page.render({ canvasContext: ctx, viewport });
+            if (renderTask && renderTask.promise) {
+              await renderTask.promise;
+            } else {
+              await renderTask;
+            }
 
-        const blob = await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob((b) => (b ? resolve(b) : reject()), "image/png")
-        );
+            const blob = await new Promise<Blob>((resolve, reject) =>
+              canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("canvas.toBlob failed"))), "image/png")
+            );
 
-        const img = new File([blob], "page.png", { type: "image/png" });
-        const res = await callFileOcrExtraction(img);
-        setResult(res);
-        return;
+            const pageFileName = `${file.name || "document"}.page-${i}.png`;
+            const img = new File([blob], pageFileName, { type: "image/png" });
+
+            try {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+            } catch {}
+            canvas.width = 0;
+            canvas.height = 0;
+
+            const res = await callFileOcrExtraction(img);
+            setResult(res);
+            return;
+          } catch (err: any) {
+            setError((prev) => prev ?? (err?.message || String(err)));
+            // continue to try next page
+          }
+        }
+
+        throw new Error(error ?? "OCR fallback failed for the first pages.");
       }
 
       // ---------- IMAGE ----------
@@ -175,58 +219,200 @@ export default function App() {
     }
   };
 
+  // Helper to trigger the hidden input
+  const triggerFilePicker = () => {
+    if (inputRef.current && !loading) {
+      inputRef.current.click();
+    }
+  };
+
+  const clearAll = () => {
+    setError(null);
+    setResult(null);
+    setFileMeta(null);
+    setLoading(false);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const downloadResult = () => {
+    if (!result) return;
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileMeta?.name ?? "extracted"}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // =============================
-  // Render
+  // Render helpers
   // =============================
+  const renderFlight = (f: FlightData) => (
+    <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr" }}>
+      <div><b>Passenger</b>: {f.passengerName ?? "—"}</div>
+      <div><b>Booking Ref</b>: {f.bookingReference ?? "—"}</div>
+      <div><b>Ticket</b>: {f.ticketNumber ?? "—"}</div>
+      <div><b>Trip Type</b>: {f.tripType ?? "—"}</div>
+      <div><b>From</b>: {f.overallFrom ?? "—"}</div>
+      <div><b>To</b>: {f.overallTo ?? "—"}</div>
+      <div><b>Departure</b>: {f.departureDate ?? "—"}</div>
+      <div><b>Return</b>: {f.returnDate ?? "—"}</div>
+      <div style={{ gridColumn: "1 / -1" }}><b>Total</b>: {formatMoney(f.currency, f.totalPrice)}</div>
+    </div>
+  );
+
+  const renderHotel = (h: HotelData) => (
+    <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr" }}>
+      <div><b>Guest</b>: {h.guestName ?? "—"}</div>
+      <div><b>Hotel</b>: {h.hotelName ?? "—"}</div>
+      <div><b>Receipt</b>: {h.receiptNumber ?? "—"}</div>
+      <div><b>City</b>: {h.hotelCity ?? "—"}</div>
+      <div><b>Check In</b>: {h.checkInDate ?? "—"}</div>
+      <div><b>Check Out</b>: {h.checkOutDate ?? "—"}</div>
+      <div style={{ gridColumn: "1 / -1" }}><b>Total</b>: {formatMoney(h.currency, h.totalPrice)}</div>
+    </div>
+  );
+
   const display = useMemo(() => {
     if (!result) return null;
     return result.type === "flight"
-      ? { title: "Parsed Flight", flight: result }
-      : { title: "Parsed Hotel", hotel: result };
+      ? { title: "Parsed Flight", content: renderFlight(result as FlightData) }
+      : { title: "Parsed Hotel", content: renderHotel(result as HotelData) };
   }, [result]);
 
+  // =============================
+  // Layout styles
+  // =============================
+  const wrapperStyle: React.CSSProperties = {
+    minHeight: "100vh",
+  width: "100vw",         
+  background: "linear-gradient(135deg, #e3f2fd, #f9fbff)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "flex-start",
+  padding: "48px 16px",
+  boxSizing: "border-box",    
+  };
+
+  const cardStyle: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 900,
+    margin: "0 auto", 
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+    padding: 30,      
+    boxSizing: "border-box",
+    background: "#fff",
+    borderRadius: 12, 
+    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  };
+
+  const dropzoneStyle: React.CSSProperties = {
+    border: "2px dashed #e6e6e6",
+    borderRadius: 8,
+    padding: 24,
+    textAlign: "center",
+    background: "#fafafa",
+  };
+
+  const primaryButton: React.CSSProperties = {
+    background: "#0b5fff",
+    color: "white",
+    border: "none",
+    padding: "10px 16px",
+    borderRadius: 6,
+    cursor: loading ? "default" : "pointer",
+    boxShadow: "0 4px 12px rgba(11,95,255,0.18)",
+    marginRight: 8,
+  };
+
+  const secondaryButton: React.CSSProperties = {
+    background: "white",
+    color: "#333",
+    border: "1px solid #ddd",
+    padding: "8px 12px",
+    borderRadius: 6,
+    cursor: "pointer",
+  };
+
+  const graySmall: React.CSSProperties = { color: "#666", fontSize: 13 };
+
   return (
-    <div style={{ maxWidth: 900, margin: "2rem auto", fontFamily: "system-ui" }}>
-      <h1>Travel Receipt Parser</h1>
-
-      <label style={{ cursor: "pointer", fontWeight: 600 }}>
-        {loading ? "Processing…" : "Upload PDF or Image"}
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onPickFile(f);
-            e.currentTarget.value = "";
-          }}
-        />
-      </label>
-
-      {fileMeta && (
-        <p style={{ color: "#666" }}>
-          Loaded: <b>{fileMeta.name}</b>
-          {fileMeta.pages && ` (${fileMeta.pages} pages)`}
+    <div style={wrapperStyle}>
+      <div style={cardStyle}>
+        <h1 style={{ margin: 0 }}>Travel Receipt Parser</h1>
+        <p style={{ marginTop: 6, marginBottom: 18, color: "#555" }}>
+          Upload a PDF or image of your hotel or flight receipt to extract booking details.
         </p>
-      )}
 
-      {error && (
-        <div style={{ background: "#ffe6e6", padding: 12, marginTop: 16 }}>
-          <b>Error:</b> {error}
+        <div style={dropzoneStyle}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,image/*"
+            style={{ display: "none" }}
+            disabled={loading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPickFile(f);
+              if (e.currentTarget) e.currentTarget.value = "";
+            }}
+          />
+
+          <div style={{ marginBottom: 12 }}>
+            <button style={primaryButton} onClick={triggerFilePicker} disabled={loading}>
+              {loading ? "Processing…" : "Choose file"}
+            </button>
+            <button
+              style={secondaryButton}
+              onClick={clearAll}
+              disabled={loading && !result && !error}
+              title="Clear results and selected file"
+            >
+              Clear
+            </button>
+            {result && (
+              <button
+                style={{ ...secondaryButton, marginLeft: 8 }}
+                onClick={downloadResult}
+                title="Download extracted data as JSON"
+              >
+                Download JSON
+              </button>
+            )}
+          </div>
+
+          <div style={graySmall}>
+            {fileMeta ? (
+              <>
+                Loaded: <b>{fileMeta.name}</b>
+                {fileMeta.pages && ` — ${fileMeta.pages} page(s)`}
+              </>
+            ) : (
+              "No file selected"
+            )}
+          </div>
         </div>
-      )}
 
-      {display?.flight && (
-        <pre style={{ marginTop: 16 }}>
-          {JSON.stringify(display.flight, null, 2)}
-        </pre>
-      )}
+        {error && (
+          <div style={{ marginTop: 16, background: "#ffe6e6", padding: 12, borderRadius: 6 }}>
+            <b style={{ color: "#b30000" }}>Error:</b> <span style={{ marginLeft: 8 }}>{error}</span>
+          </div>
+        )}
 
-      {display?.hotel && (
-        <pre style={{ marginTop: 16 }}>
-          {JSON.stringify(display.hotel, null, 2)}
-        </pre>
-      )}
+        {display && (
+          <div style={{ marginTop: 18, padding: 16, background: "white", borderRadius: 8, border: "1px solid #eee" }}>
+            <h3 style={{ marginTop: 0 }}>{display.title}</h3>
+            <div>{display.content}</div>
+            <details style={{ marginTop: 12 }}>
+              <summary style={{ cursor: "pointer" }}>Raw JSON</summary>
+              <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{JSON.stringify(result, null, 2)}</pre>
+            </details>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
