@@ -171,7 +171,7 @@ export default function App() {
             canvas.width = Math.floor(viewport.width);
             canvas.height = Math.floor(viewport.height);
 
-            const renderTask: any = page.render({ canvasContext: ctx, viewport });
+            const renderTask: any = page.render({ canvasContext: ctx, canvas: canvas, viewport });
             if (renderTask && renderTask.promise) {
               await renderTask.promise;
             } else {
@@ -219,7 +219,6 @@ export default function App() {
     }
   };
 
-  // Helper to trigger the hidden input
   const triggerFilePicker = () => {
     if (inputRef.current && !loading) {
       inputRef.current.click();
@@ -251,36 +250,40 @@ export default function App() {
   // Render helpers
   // =============================
   const renderFlight = (f: FlightData) => (
-    <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr" }}>
-      <div><b>Passenger</b>: {f.passengerName ?? "—"}</div>
-      <div><b>Booking Ref</b>: {f.bookingReference ?? "—"}</div>
-      <div><b>Ticket</b>: {f.ticketNumber ?? "—"}</div>
-      <div><b>Trip Type</b>: {f.tripType ?? "—"}</div>
-      <div><b>From</b>: {f.overallFrom ?? "—"}</div>
-      <div><b>To</b>: {f.overallTo ?? "—"}</div>
-      <div><b>Departure</b>: {f.departureDate ?? "—"}</div>
-      <div><b>Return</b>: {f.returnDate ?? "—"}</div>
-      <div style={{ gridColumn: "1 / -1" }}><b>Total</b>: {formatMoney(f.currency, f.totalPrice)}</div>
+    <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "1fr 1fr", fontSize: "15px" }}>
+      <div><b style={{color: "#64748b"}}>Passenger:</b><br/> {f.passengerName ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Booking Ref:</b><br/> {f.bookingReference ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Ticket:</b><br/> {f.ticketNumber ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Trip Type:</b><br/> {f.tripType ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>From:</b><br/> {f.overallFrom ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>To:</b><br/> {f.overallTo ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Departure:</b><br/> {f.departureDate ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Return:</b><br/> {f.returnDate ?? "—"}</div>
+      <div style={{ gridColumn: "1 / -1", marginTop: "8px", paddingTop: "12px", borderTop: "1px solid #e2e8f0", fontSize: "18px" }}>
+        <b style={{color: "#0f172a"}}>Total:</b> {formatMoney(f.currency, f.totalPrice)}
+      </div>
     </div>
   );
 
   const renderHotel = (h: HotelData) => (
-    <div style={{ display: "grid", gap: 6, gridTemplateColumns: "1fr 1fr" }}>
-      <div><b>Guest</b>: {h.guestName ?? "—"}</div>
-      <div><b>Hotel</b>: {h.hotelName ?? "—"}</div>
-      <div><b>Receipt</b>: {h.receiptNumber ?? "—"}</div>
-      <div><b>City</b>: {h.hotelCity ?? "—"}</div>
-      <div><b>Check In</b>: {h.checkInDate ?? "—"}</div>
-      <div><b>Check Out</b>: {h.checkOutDate ?? "—"}</div>
-      <div style={{ gridColumn: "1 / -1" }}><b>Total</b>: {formatMoney(h.currency, h.totalPrice)}</div>
+    <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "1fr 1fr", fontSize: "15px" }}>
+      <div><b style={{color: "#64748b"}}>Guest:</b><br/> {h.guestName ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Hotel:</b><br/> {h.hotelName ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Receipt:</b><br/> {h.receiptNumber ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>City:</b><br/> {h.hotelCity ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Check In:</b><br/> {h.checkInDate ?? "—"}</div>
+      <div><b style={{color: "#64748b"}}>Check Out:</b><br/> {h.checkOutDate ?? "—"}</div>
+      <div style={{ gridColumn: "1 / -1", marginTop: "8px", paddingTop: "12px", borderTop: "1px solid #e2e8f0", fontSize: "18px" }}>
+        <b style={{color: "#0f172a"}}>Total:</b> {formatMoney(h.currency, h.totalPrice)}
+      </div>
     </div>
   );
 
   const display = useMemo(() => {
     if (!result) return null;
     return result.type === "flight"
-      ? { title: "Parsed Flight", content: renderFlight(result as FlightData) }
-      : { title: "Parsed Hotel", content: renderHotel(result as HotelData) };
+      ? { title: "✈️ Flight Details", content: renderFlight(result as FlightData) }
+      : { title: "🏨 Hotel Details", content: renderHotel(result as HotelData) };
   }, [result]);
 
   // =============================
@@ -288,63 +291,79 @@ export default function App() {
   // =============================
   const wrapperStyle: React.CSSProperties = {
     minHeight: "100vh",
-  width: "100vw",         
-  background: "linear-gradient(135deg, #e3f2fd, #f9fbff)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-start",
-  padding: "48px 16px",
-  boxSizing: "border-box",    
+    width: "100vw",
+    background: "linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    padding: "60px 20px",
+    boxSizing: "border-box",
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    color: "#0f172a",
   };
 
   const cardStyle: React.CSSProperties = {
     width: "100%",
-    maxWidth: 900,
-    margin: "0 auto", 
-    fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
-    padding: 30,      
+    maxWidth: 1000,
+    margin: "0 auto",
+    padding: "40px",
     boxSizing: "border-box",
-    background: "#fff",
-    borderRadius: 12, 
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    background: "#ffffff",
+    borderRadius: "20px",
+    boxShadow: "0 20px 40px -10px rgba(0,0,0,0.08), 0 10px 15px -3px rgba(0,0,0,0.04)",
   };
 
   const dropzoneStyle: React.CSSProperties = {
-    border: "2px dashed #e6e6e6",
-    borderRadius: 8,
-    padding: 24,
+    border: "2px dashed #cbd5e1",
+    borderRadius: "12px",
+    padding: "40px 24px",
     textAlign: "center",
-    background: "#fafafa",
+    background: "#f8fafc",
+    marginTop: "24px",
+    marginBottom: "24px",
   };
 
   const primaryButton: React.CSSProperties = {
-    background: "#0b5fff",
+    background: "#7c3aed",
     color: "white",
+    fontWeight: 600,
     border: "none",
-    padding: "10px 16px",
-    borderRadius: 6,
-    cursor: loading ? "default" : "pointer",
-    boxShadow: "0 4px 12px rgba(11,95,255,0.18)",
-    marginRight: 8,
+    padding: "10px 20px",
+    borderRadius: "8px",
+    cursor: loading ? "not-allowed" : "pointer",
+    opacity: loading ? 0.7 : 1,
+    boxShadow: "0 4px 6px -1px rgba(124, 58, 237, 0.3)",
+    marginRight: 12,
+    fontSize: "14px",
+    transition: "all 0.2s ease"
   };
 
   const secondaryButton: React.CSSProperties = {
     background: "white",
-    color: "#333",
-    border: "1px solid #ddd",
-    padding: "8px 12px",
-    borderRadius: 6,
-    cursor: "pointer",
+    color: "#334155",
+    fontWeight: 600,
+    border: "1px solid #cbd5e1",
+    padding: "9px 16px",
+    borderRadius: "8px",
+    cursor: (loading && !result && !error) ? "not-allowed" : "pointer",
+    opacity: (loading && !result && !error) ? 0.6 : 1,
+    fontSize: "14px",
+    transition: "all 0.2s ease"
   };
 
-  const graySmall: React.CSSProperties = { color: "#666", fontSize: 13 };
+  const graySmall: React.CSSProperties = { 
+    color: "#64748b", 
+    fontSize: 14, 
+    marginTop: 16,
+    display: "block"
+  };
 
   return (
     <div style={wrapperStyle}>
       <div style={cardStyle}>
-        <h1 style={{ margin: 0 }}>Travel Receipt Parser</h1>
-        <p style={{ marginTop: 6, marginBottom: 18, color: "#555" }}>
-          Upload a PDF or image of your hotel or flight receipt to extract booking details.
+        <h1 style={{ margin: 0, fontSize: "40px", fontWeight: 700, textAlign: "center" ,}}>Travel Receipt Parser</h1>
+        <p style={{ marginTop: 8, marginBottom: 0, color: "#64748b", fontSize: "16px", lineHeight: "1.5" }}>
+          Upload a PDF or image of your hotel or flight receipt to extract your booking details.
         </p>
 
         <div style={dropzoneStyle}>
@@ -361,9 +380,9 @@ export default function App() {
             }}
           />
 
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 4 }}>
             <button style={primaryButton} onClick={triggerFilePicker} disabled={loading}>
-              {loading ? "Processing…" : "Choose file"}
+              {loading ? "Processing Document…" : "Choose File"}
             </button>
             <button
               style={secondaryButton}
@@ -375,7 +394,7 @@ export default function App() {
             </button>
             {result && (
               <button
-                style={{ ...secondaryButton, marginLeft: 8 }}
+                style={{ ...secondaryButton, marginLeft: 12 }}
                 onClick={downloadResult}
                 title="Download extracted data as JSON"
               >
@@ -387,28 +406,42 @@ export default function App() {
           <div style={graySmall}>
             {fileMeta ? (
               <>
-                Loaded: <b>{fileMeta.name}</b>
-                {fileMeta.pages && ` — ${fileMeta.pages} page(s)`}
+                <span style={{ color: "#10b981", marginRight: 6 }}>✓</span>
+                Loaded: <b style={{ color: "#334155" }}>{fileMeta.name}</b>
+                {fileMeta.pages && ` (${fileMeta.pages} pages)`}
               </>
             ) : (
-              "No file selected"
+              "No file selected (Supports PDF, PNG, JPG)"
             )}
           </div>
         </div>
 
         {error && (
-          <div style={{ marginTop: 16, background: "#ffe6e6", padding: 12, borderRadius: 6 }}>
-            <b style={{ color: "#b30000" }}>Error:</b> <span style={{ marginLeft: 8 }}>{error}</span>
+          <div style={{ marginTop: 24, background: "#fef2f2", border: "1px solid #fecaca", padding: "16px", borderRadius: "8px", color: "#991b1b", fontSize: "15px" }}>
+            <b>Error:</b> <span style={{ marginLeft: 4 }}>{error}</span>
           </div>
         )}
 
         {display && (
-          <div style={{ marginTop: 18, padding: 16, background: "white", borderRadius: 8, border: "1px solid #eee" }}>
-            <h3 style={{ marginTop: 0 }}>{display.title}</h3>
+          <div style={{ marginTop: 24, padding: "24px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <h3 style={{ margin: "0 0 20px 0", color: "#0f172a", fontSize: "20px" }}>{display.title}</h3>
             <div>{display.content}</div>
-            <details style={{ marginTop: 12 }}>
-              <summary style={{ cursor: "pointer" }}>Raw JSON</summary>
-              <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{JSON.stringify(result, null, 2)}</pre>
+            
+            <details style={{ marginTop: 24, paddingTop: 16, borderTop: "1px dashed #cbd5e1" }}>
+              <summary style={{ cursor: "pointer", color: "#64748b", fontWeight: 600, fontSize: "14px", userSelect: "none" }}>
+                View Raw JSON Data
+              </summary>
+              <pre style={{ 
+                background: "#1e293b", 
+                color: "#e2e8f0", 
+                padding: "16px", 
+                borderRadius: "8px", 
+                fontSize: "13px", 
+                overflowX: "auto",
+                marginTop: "12px"
+              }}>
+                {JSON.stringify(result, null, 2)}
+              </pre>
             </details>
           </div>
         )}
