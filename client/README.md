@@ -87,7 +87,7 @@ npm install
 Environment variables (server/.env):
 OPENAI_API_KEY=your_api_key
 LLM_PROVIDER=openai      # or "ollama"
-PORT=8787
+PORT=8789
 
 
 
