@@ -1,96 +1,207 @@
-# Travel Document Parser
+# Travel Receipt Parser
 
-This project is part of my master's thesis and implements an end-to-end pipeline for extracting structured data from travel documents (currently flight and hotel receipts).  
-It combines PDF parsing, OCR (work in progress), and LLM-based information extraction using either OpenAI models or local Llama models (via Ollama).
-
----
-
-## Architecture Overview
-
-The system consists of two main components:
-
-client/ → React + TypeScript + Vite (PDF rendering + UI)
-server/ → Node.js + Express (OCR, LLM orchestration, file handling)
-
-
-High-level flow:
-
-  [PDF Upload]
-         |
-  [Backend Server]
-         |
-
-PDF.js text extraction
-+ optional OCR (WIP)
-|
-Pre-processing & normalization
-|
-LLM prompt → OpenAI / Ollama
-|
-JSON schema extraction
-|
-[Frontend Viewer]
-Currently:
-- OCR integration with Tesseract is **in progress**  
-- System works reliably **only for text-based PDFs** (no raster/scan support yet)
+> Structured Data Extraction from Travel Documents using Large Language Models (LLMs)
+> React · Node.js · Tesseract · OpenAI · Ollama (LLaMA)
 
 ---
 
-## Tech Stack Details
+## What It Does
 
-### Frontend
-- React 18 + TypeScript  
-- Vite bundler (HMR enabled)  
-- pdf.js (`pdfjs-dist`) for rendering + text extraction  
-- Minimal UI (no external component library yet)
+Upload a travel document (text-based PDF, scanned/image-based PDF, or image file) —  
+the system extracts structured data automatically and returns clean JSON.
 
-### Backend
-- Node.js + Express  
-- Multer for file upload handling  
-- dotenv for env variable management  
-- CORS enabled for local development  
-- LLM routing layer (OpenAI or local Llama via Ollama executable)
+**Flow:**
 
-### OCR
-- Tesseract (via `tesseract.js` planned or native installation)  
-- Not fully wired into the backend pipeline yet  
-- Placeholder logic included for switching between text-extraction backends
+Upload → OCR → LLM → Structured JSON → SQLite Logging
 
-### LLM Providers
-#### 1. OpenAI
-- Uses `OPENAI_API_KEY`  
-- Receives processed text + instruction prompts  
-- Returns structured JSON
+This project focuses on:
 
-#### 2. Local Llama Models (Ollama)
-- Tested with `llama3.1:8b-instruct-q4_K_M`  
-- Runs through `child_process.spawn` or Ollama JS client  
-- Good fallback when cloud LLM not desired (privacy-friendly)
+AI-based document processing
+Comparison of cloud vs. local LLMs
+Automation of travel expense extraction
+Integration of OCR and LLMs in a single pipeline
 
 ---
 
-## Installation
+## Key Features
 
-### Clone the repository
+- Upload images or PDFs
+- OCR with **Tesseract.js**
+- JSON extraction via **OpenAI** or **Local LLaMA (Ollama)**
+- Easy model switching (`openai` / `ollama`)
+- SQLite logging of every run
+- Batch evaluation scripts
+- CSV export for quantitative analysis
+
+---
+
+## Tech Stack
+
+**Frontend**
+
+- React
+- TypeScript
+- Vite
+
+**Backend**
+
+- Node.js
+- Express
+- Tesseract.js
+- OpenAI API
+- Ollama (LLaMA 3.1)
+- SQLite
+
+---
+
+## Architecture
+
+Client (React)
+↓
+Express API
+↓
+OCR (Tesseract.js)
+↓
+LLM (OpenAI or Ollama)
+↓
+SQLite (eval.sqlite)
+↓
+JSON Response
+
+---
+
+## ⚙️ Installation
+
 ```bash
 git clone <your-repo-url>
-cd travel_document_parser
+cd Travel_Receipt_Parser
 
+```
 
+Install Backend
 
-Backend Setup
-
+```bash
 cd server
 npm install
+```
 
+Install Frontend
 
-Environment variables (server/.env):
-OPENAI_API_KEY=your_api_key
-LLM_PROVIDER=openai      # or "ollama"
+```bash
+cd ../client
+npm install
+```
+
+Environment Variables
+
+Create server/.env:
+
+```env
 PORT=8789
 
+# OpenAI (cloud)
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-4o-mini
 
+# Ollama (local)
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_MODEL=llama3.1:8b-instruct-q8_0
+```
 
+Running the App
 
+OpenAI Mode
 
+```bash
+cd server
+npm run openai
+```
 
+Ollama Mode (Local LLaMA)
+
+Make sure Ollama is running:
+
+```bash
+ollama run llama3.1:8b-instruct-q8_0
+```
+
+Then:
+
+```bash
+npm run ollama
+```
+
+Start Frontend
+
+```bash
+cd client
+npm run dev
+```
+
+Frontend → http://localhost:5173
+Backend → http://localhost:8789
+
+Batch Evaluation
+Run automated experiments:
+
+```bash
+node run_batch_images.mjs
+node run_batch_text_pdfs.mjs
+node run_batch_low_quality_images.mjs
+```
+
+All experiment runs are stored in the SQLite database:
+server/eval.sqlite
+
+Export Results (CSV)
+After running experiments, export all recorded runs using:
+
+```bash
+sqlite3 -header -csv eval.sqlite "
+SELECT
+  id,
+  timestamp,
+  source_file,
+  provider,
+  model,
+  success,
+  docType_pred,
+  latency_ms,
+  ocr_used,
+  input_chars,
+  json_output
+FROM eval_runs
+ORDER BY id;
+" > eval_runs_all.csv
+```
+
+This generates:
+server/eval_runs_all.csv
+
+The exported CSV file enables further analysis of:
+
+Extraction success rates
+Processing latency
+OCR impact on performance
+Differences between cloud and local models
+Model behavior across document types
+
+📂 Project Structure
+Travel*Receipt_Parser/
+│
+├── client/ # React frontend
+├── server/ # Express backend
+│ ├── uploads/
+│ ├── images/
+│ ├── pdfs_text/
+│ ├── eval.sqlite
+│ ├── run_batch*\*.mjs
+│ └── index.js
+│
+└── README.md
+
+License
+Academic / Research Use
+
+Gunay Aghadadashli
+Master’s Thesis – Structured Data Extraction from Travel Documents using Large Language Models (LLMs) (2026)
