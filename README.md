@@ -1,7 +1,7 @@
 # Travel Receipt Parser
 
 > Structured Data Extraction from Travel Documents using Large Language Models (LLMs)
-> React · Node.js · Tesseract · OpenAI · Ollama (LLaMA)
+> React · Node.js · Tesseract · OpenAI · Ollama (LLaMA 3.1)
 
 ---
 
@@ -27,7 +27,7 @@ Integration of OCR and LLMs in a single pipeline
 
 - Upload images or PDFs
 - OCR with **Tesseract.js**
-- JSON extraction via **OpenAI** or **Local LLaMA (Ollama)**
+- JSON extraction via **OpenAI** or **Local LLaMA 3.1 (Ollama)**
 - Easy model switching (`openai` / `ollama`)
 - SQLite logging of every run
 - Batch evaluation scripts
@@ -73,7 +73,7 @@ JSON Response
 ## ⚙️ Installation
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/gunissa/Travel_Receipt_Parser.git
 cd Travel_Receipt_Parser
 
 ```
@@ -147,7 +147,6 @@ Run automated experiments:
 ```bash
 node run_batch_images.mjs
 node run_batch_text_pdfs.mjs
-node run_batch_low_quality_images.mjs
 ```
 
 All experiment runs are stored in the SQLite database:
@@ -201,7 +200,7 @@ Travel*Receipt_Parser/
 └── README.md
 
 License
-Academic / Research Use
+MIT License
 
 Gunay Aghadadashli
 Master’s Thesis – Structured Data Extraction from Travel Documents using Large Language Models (LLMs) (2026)
